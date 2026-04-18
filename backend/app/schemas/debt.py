@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from datetime import date
+from typing import Optional
 from app.models.debt import DebtStatus, DebtRisk
 import uuid
 
@@ -12,9 +13,9 @@ class DebtCreate(BaseModel):
     current_balance: Decimal
     monthly_payment: Decimal
     interest_rate: Decimal = Decimal("0")
-    next_due_date: date | None = None
+    next_due_date: Optional[date] = None
     risk_level: DebtRisk = DebtRisk.MEDIUM
-    notes: str | None = None
+    notes: Optional[str] = None
 
     @field_validator("monthly_payment", "current_balance", "original_amount")
     @classmethod
@@ -30,14 +31,14 @@ class DebtCreate(BaseModel):
 
 
 class DebtUpdate(BaseModel):
-    creditor: str | None = None
-    current_balance: Decimal | None = None
-    monthly_payment: Decimal | None = None
-    interest_rate: Decimal | None = None
-    next_due_date: date | None = None
-    status: DebtStatus | None = None
-    risk_level: DebtRisk | None = None
-    notes: str | None = None
+    creditor: Optional[str] = None
+    current_balance: Optional[Decimal] = None
+    monthly_payment: Optional[Decimal] = None
+    interest_rate: Optional[Decimal] = None
+    next_due_date: Optional[date] = None
+    status: Optional[DebtStatus] = None
+    risk_level: Optional[DebtRisk] = None
+    notes: Optional[str] = None
 
 
 class DebtResponse(BaseModel):
@@ -48,10 +49,10 @@ class DebtResponse(BaseModel):
     current_balance: Decimal
     monthly_payment: Decimal
     interest_rate: Decimal
-    next_due_date: date | None
+    next_due_date: Optional[date]
     status: DebtStatus
     risk_level: DebtRisk
-    notes: str | None
+    notes: Optional[str]
     is_active: bool
 
     class Config:
