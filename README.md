@@ -21,3 +21,6 @@ Inclui ainda um dashboard executivo que fornece uma visão clara e imediata da s
 ## Objectivo
 
 Proporcionar uma ferramenta robusta, intuitiva e orientada a dados para melhorar o controlo financeiro, reduzir riscos de incumprimento e suportar decisões estratégicas pessoais.
+
+
+Obrigado!
