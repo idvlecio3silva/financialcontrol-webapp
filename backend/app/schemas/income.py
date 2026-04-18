@@ -1,6 +1,7 @@
 from pydantic import BaseModel, field_validator
 from decimal import Decimal
 from datetime import date
+from typing import Optional
 from app.models.income import IncomeType, IncomeStatus
 import uuid
 
@@ -13,7 +14,7 @@ class IncomeCreate(BaseModel):
     expected_amount: Decimal
     received_amount: Decimal = Decimal("0")
     status: IncomeStatus = IncomeStatus.EXPECTED
-    notes: str | None = None
+    notes: Optional[str] = None
 
     @field_validator("expected_amount", "received_amount")
     @classmethod
@@ -29,14 +30,14 @@ class IncomeCreate(BaseModel):
 
 
 class IncomeUpdate(BaseModel):
-    bank_account_id: uuid.UUID | None = None
-    date: date | None = None
-    source: str | None = None
-    income_type: IncomeType | None = None
-    expected_amount: Decimal | None = None
-    received_amount: Decimal | None = None
-    status: IncomeStatus | None = None
-    notes: str | None = None
+    bank_account_id: Optional[uuid.UUID] = None
+    date: Optional[date] = None
+    source: Optional[str] = None
+    income_type: Optional[IncomeType] = None
+    expected_amount: Optional[Decimal] = None
+    received_amount: Optional[Decimal] = None
+    status: Optional[IncomeStatus] = None
+    notes: Optional[str] = None
 
 
 class IncomeResponse(BaseModel):
@@ -48,7 +49,7 @@ class IncomeResponse(BaseModel):
     expected_amount: Decimal
     received_amount: Decimal
     status: IncomeStatus
-    notes: str | None
+    notes: Optional[str]
     is_active: bool
 
     class Config:
