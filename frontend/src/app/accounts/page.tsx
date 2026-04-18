@@ -55,7 +55,14 @@ export default function AccountsPage() {
   });
 
   const openCreate = () => { setEditing(null); reset({ account_type: "checking", minimum_balance: 0, current_balance: 0 }); setShowModal(true); };
-  const openEdit = (acc: BankAccount) => { setEditing(acc); reset({ ...acc }); setShowModal(true); };
+const openEdit = (acc: BankAccount) => {
+  setEditing(acc);
+  reset({
+    ...acc,
+    notes: acc.notes ?? "",
+  });
+  setShowModal(true);
+};
   const closeModal = () => { setShowModal(false); setEditing(null); reset(); };
 
   const onSubmit = (data: AccountForm) => {
