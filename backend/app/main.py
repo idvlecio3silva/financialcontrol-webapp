@@ -27,8 +27,8 @@ app = FastAPI(
     title="FinancialControl API",
     description="Sistema pessoal de controlo financeiro — secure-by-design",
     version="1.0.0",
-    docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
-    redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
     lifespan=lifespan,
 )
 
@@ -81,6 +81,11 @@ app.include_router(cashflow.router)
 app.include_router(savings.router)
 app.include_router(dashboard.router)
 app.include_router(reports.router)
+
+
+@app.get("/", tags=["Sistema"])
+async def root():
+    return {"message": "FinancialControl API online"}
 
 
 @app.get("/health", tags=["Sistema"])
