@@ -31,7 +31,7 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
 
 
-@@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
     try:
         existing = await db.execute(
