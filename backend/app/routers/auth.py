@@ -30,9 +30,6 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
 
 
-# =========================
-# REGISTER
-# =========================
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
     existing = await db.execute(
@@ -53,21 +50,9 @@ async def register(payload: RegisterRequest, request: Request, db: AsyncSession 
     db.add(user)
     await db.flush()
 
-    await log_action(
-        db,
-        user_id=user.id,
-        action=AuditAction.CREATE,
-        entity_type="user",
-        entity_id=str(user.id),
-        ip_address=get_client_ip(request),
-    )
-
     return user
 
 
-# =========================
-# LOGIN
-# =========================
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
     ip = get_client_ip(request)
@@ -91,7 +76,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
             detail="Credenciais inválidas",
         )
 
-    # Lock check
     if user.locked_until and user.locked_until > datetime.now(timezone.utc):
         await log_action(
             db,
@@ -105,7 +89,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
             detail=f"Conta bloqueada até {user.locked_until.isoformat()}",
         )
 
-    # Password check
     if not verify_password(payload.password, user.hashed_password):
         user.failed_login_attempts += 1
 
@@ -134,7 +117,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
             detail="Conta inactiva",
         )
 
-    # MFA (opcional)
     if user.mfa_enabled:
         if not payload.mfa_code:
             raise HTTPException(
@@ -151,7 +133,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
                 detail="Código MFA inválido",
             )
 
-    # Reset counters
     user.failed_login_attempts = 0
     user.locked_until = None
     user.last_login_at = datetime.now(timezone.utc)
@@ -176,9 +157,6 @@ async def login(payload: LoginRequest, request: Request, db: AsyncSession = Depe
     )
 
 
-# =========================
-# REFRESH TOKEN
-# =========================
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     decoded = decode_token(payload.refresh_token)
@@ -213,9 +191,6 @@ async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
     )
 
 
-# =========================
-# LOGOUT
-# =========================
 @router.post("/logout")
 async def logout(
     request: Request,
@@ -233,9 +208,6 @@ async def logout(
     return {"message": "Sessão terminada com sucesso"}
 
 
-# =========================
-# CURRENT USER
-# =========================
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)):
     return current_user
