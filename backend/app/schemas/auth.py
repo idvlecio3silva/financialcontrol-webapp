@@ -8,20 +8,22 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str
 
-    @field_validator("password")
-    @classmethod
-    def validate_password(cls, v: str) -> str:
-        if len(v) < 10:
-            raise ValueError("Password deve ter pelo menos 10 caracteres")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Password deve conter pelo menos uma maiúscula")
-        if not re.search(r"[a-z]", v):
-            raise ValueError("Password deve conter pelo menos uma minúscula")
-        if not re.search(r"\d", v):
-            raise ValueError("Password deve conter pelo menos um número")
-        if not re.search(r"[^A-Za-z0-9]", v):
-            raise ValueError("Password deve conter pelo menos um caractere especial")
-        return v
+   @field_validator("password")
+@classmethod
+def validate_password(cls, v: str) -> str:
+    if len(v) < 10:
+        raise ValueError("Password deve ter pelo menos 10 caracteres")
+    if len(v.encode("utf-8")) > 72:
+        raise ValueError("Password não pode exceder 72 bytes")
+    if not re.search(r"[A-Z]", v):
+        raise ValueError("Password deve conter pelo menos uma maiúscula")
+    if not re.search(r"[a-z]", v):
+        raise ValueError("Password deve conter pelo menos uma minúscula")
+    if not re.search(r"\d", v):
+        raise ValueError("Password deve conter pelo menos um número")
+    if not re.search(r"[^A-Za-z0-9]", v):
+        raise ValueError("Password deve conter pelo menos um caractere especial")
+    return v
 
     @field_validator("full_name")
     @classmethod
