@@ -1,29 +1,72 @@
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(select(User).where(User.email == payload.email.lower()))
-    if existing.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email já registado")
+from pydantic import BaseModel, EmailStr, field_validator
+from typing import Optional
+import re
 
-    user = User(
-        email=payload.email.lower(),
-        hashed_password=hash_password(payload.password),
-        full_name=payload.full_name.strip(),
-    )
 
-    db.add(user)
-    await db.flush()
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str
+    full_name: str
 
-    # ⚠️ TEMP: remover FinancialSettings para evitar 500
-    # settings = FinancialSettings(user_id=user.id)
-    # db.add(settings)
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 10:
+            raise ValueError("Password deve ter pelo menos 10 caracteres")
+        if not re.search(r"[A-Z]", v):
+            raise ValueError("Password deve conter pelo menos uma maiúscula")
+        if not re.search(r"[a-z]", v):
+            raise ValueError("Password deve conter pelo menos uma minúscula")
+        if not re.search(r"\d", v):
+            raise ValueError("Password deve conter pelo menos um número")
+        if not re.search(r"[^A-Za-z0-9]", v):
+            raise ValueError("Password deve conter pelo menos um caractere especial")
+        return v
 
-    await log_action(
-        db,
-        user_id=user.id,
-        action=AuditAction.CREATE,
-        entity_type="user",
-        entity_id=str(user.id),
-        ip_address=get_client_ip(request),
-    )
+    @field_validator("full_name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        v = v.strip()
+        if len(v) < 2:
+            raise ValueError("Nome deve ter pelo menos 2 caracteres")
+        return v
 
-    return user
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+    mfa_code: Optional[str] = None
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    user_id: str
+    full_name: str
+    email: str
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+
+class UserResponse(BaseModel):
+    id: str
+    email: str
+    full_name: str
+    is_active: bool
+    mfa_enabled: bool
+
+    class Config:
+        from_attributes = True
+
+
+class MFASetupResponse(BaseModel):
+    secret: str
+    qr_code: str
+    backup_codes: list[str]
+
+
+class MFAVerifyRequest(BaseModel):
+    code: str
