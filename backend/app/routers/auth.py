@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.database import get_db
 from app.models.user import User
@@ -30,38 +31,56 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(payload: RegisterRequest, request: Request, db: AsyncSession = Depends(get_db)):
-    existing = await db.execute(
-        select(User).where(User.email == payload.email.lower())
-    )
-    if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Email já registado",
+    try:
+        existing = await db.execute(
+            select(User).where(User.email == payload.email.lower())
+        )
+        if existing.scalar_one_or_none():
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Email já registado",
+            )
+
+        user = User(
+            email=payload.email.lower(),
+            hashed_password=hash_password(payload.password),
+            full_name=payload.full_name.strip(),
+            is_active=True,
+            is_superuser=False,
+            mfa_enabled=False,
+            failed_login_attempts=0,
         )
 
-    user = User(
-        email=payload.email.lower(),
-        hashed_password=hash_password(payload.password),
-        full_name=payload.full_name.strip(),
-        is_active=True,
-        is_superuser=False,
-        mfa_enabled=False,
-        failed_login_attempts=0,
-    )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
-    db.add(user)
-    await db.flush()
-    await db.refresh(user)
+        return UserResponse(
+            id=str(user.id),
+            email=user.email,
+            full_name=user.full_name,
+            is_active=user.is_active,
+            mfa_enabled=user.mfa_enabled,
+        )
 
-    return UserResponse(
-        id=str(user.id),
-        email=user.email,
-        full_name=user.full_name,
-        is_active=user.is_active,
-        mfa_enabled=user.mfa_enabled,
-    )
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Erro de integridade: {str(e.orig)}",
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro no registo: {str(e)}",
+        )
 
 
 @router.post("/login", response_model=TokenResponse)
